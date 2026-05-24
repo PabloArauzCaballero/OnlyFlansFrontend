@@ -1,6 +1,6 @@
 import axios from "axios";
 
-export const API_BASE_URL = (import.meta.env.VITE_API_URL || "https://onlyflans.a2020115468.workers.dev").replace(/\/$/, "");
+export const API_BASE_URL = (import.meta.env.VITE_API_URL || "https://onlyflans.a2020115468.workers.dev/api").replace(/\/$/, "");
 
 export const TOKEN_KEYS = {
   access: "onlyflans_access_token",
