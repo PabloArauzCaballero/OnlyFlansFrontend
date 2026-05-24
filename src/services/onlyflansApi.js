@@ -141,7 +141,6 @@ export function normalizeSupportType(raw = {}) {
     status: raw.estado_registro || RECORD_STATUS.ACTIVE,
   };
 }
-
 export function normalizeDonation(raw = {}) {
   const quantity = asNumber(raw.cantidad ?? raw.flanQuantity, 0);
   const unitAmount = asNumber(raw.monto_unitario_bs ?? raw.amountUnitBs, asNumber(DEFAULT_FLAN_PRICE));
