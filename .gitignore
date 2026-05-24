@@ -1,0 +1,97 @@
+# =========================
+# Dependencias
+# =========================
+node_modules/
+.pnp/
+.pnp.js
+
+# =========================
+# Variables de entorno
+# =========================
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+*.env
+
+!.env.example
+
+# =========================
+# Logs
+# =========================
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# =========================
+# Builds / producción
+# =========================
+dist/
+build/
+out/
+.next/
+.vite/
+
+# =========================
+# Cache
+# =========================
+.cache/
+.parcel-cache/
+.eslintcache
+.stylelintcache
+
+# =========================
+# Archivos de sistema
+# =========================
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# =========================
+# IDE / Editores
+# =========================
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# =========================
+# Testing / coverage
+# =========================
+coverage/
+.nyc_output/
+
+# =========================
+# Base de datos local / temporales
+# =========================
+*.sqlite
+*.sqlite3
+*.db
+
+# =========================
+# Archivos temporales
+# =========================
+tmp/
+temp/
+*.tmp
+
+# =========================
+# Docker opcional
+# =========================
+docker-compose.override.yml
+
+# =========================
+# Certificados / claves privadas
+# =========================
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
