@@ -1,5 +1,5 @@
 [build]
-  command = "npm run build"
+  command = "yarn vite"
   publish = "dist"
 
 [[redirects]]
