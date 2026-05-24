@@ -1,12 +1,13 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { ErrorMessage } from "../components/Status.jsx";
 import { ROLES } from "../services/onlyflansApi.js";
 import { useAuth } from "../state/AuthContext.jsx";
-import { ErrorMessage } from "../components/Status.jsx";
 
 export default function Login() {
   const { login } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [form, setForm] = useState({ email: "", password: "" });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -18,7 +19,8 @@ export default function Login() {
 
     try {
       const user = await login(form);
-      navigate(user.role === ROLES.CREATOR ? "/creator/dashboard" : "/follower/dashboard");
+      const fallback = user.role === ROLES.CREATOR ? "/creator/dashboard" : "/follower/dashboard";
+      navigate(location.state?.from || fallback, { replace: true });
     } catch (err) {
       setError(err.message);
     } finally {
@@ -28,16 +30,18 @@ export default function Login() {
 
   return (
     <section className="auth-card card">
-      <p className="eyebrow">Acceso</p>
+      <p className="eyebrow">Acceso seguro</p>
       <h1>Iniciar sesión</h1>
-      <p className="muted">Usa el correo y contraseña creados en el registro o cargados en tus datos de prueba.</p>
+      <p className="muted">El backend devuelve cookies HTTP-only y tokens. El frontend trabaja con ambos para evitar problemas de sesión.</p>
       <ErrorMessage message={error} />
+
       <form onSubmit={submit} className="form-grid">
-        <label>Email<input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} required /></label>
-        <label>Contraseña<input type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} required /></label>
-        <button className="button" disabled={loading}>{loading ? "Entrando..." : "Entrar"}</button>
+        <label>Email<input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} required autoComplete="email" /></label>
+        <label>Contraseña<input type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} minLength={8} required autoComplete="current-password" /></label>
+        <button className="button full" disabled={loading}>{loading ? "Entrando..." : "Entrar"}</button>
       </form>
-      <p>¿No tienes cuenta? <Link to="/register">Regístrate</Link></p>
+
+      <p className="auth-footer">¿No tienes cuenta? <Link to="/register">Crear una cuenta</Link></p>
     </section>
   );
 }

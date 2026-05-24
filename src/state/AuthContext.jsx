@@ -1,11 +1,9 @@
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { authApi } from "../services/onlyflansApi.js";
+import { TOKEN_KEYS } from "../services/api.js";
 
 const AuthContext = createContext(null);
-
 const USER_KEY = "onlyflans_user";
-const ACCESS_TOKEN_KEY = "onlyflans_access_token";
-const REFRESH_TOKEN_KEY = "onlyflans_refresh_token";
 
 function readStoredJson(key) {
   try {
@@ -18,25 +16,25 @@ function readStoredJson(key) {
 
 function persistSession({ user, token, refreshToken }) {
   if (user) localStorage.setItem(USER_KEY, JSON.stringify(user));
-  if (token) localStorage.setItem(ACCESS_TOKEN_KEY, token);
-  if (refreshToken) localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
+  if (token) localStorage.setItem(TOKEN_KEYS.access, token);
+  if (refreshToken) localStorage.setItem(TOKEN_KEYS.refresh, refreshToken);
 }
 
 function clearSessionStorage() {
   localStorage.removeItem(USER_KEY);
-  localStorage.removeItem(ACCESS_TOKEN_KEY);
-  localStorage.removeItem(REFRESH_TOKEN_KEY);
+  localStorage.removeItem(TOKEN_KEYS.access);
+  localStorage.removeItem(TOKEN_KEYS.refresh);
 }
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(() => readStoredJson(USER_KEY));
-  const [token, setToken] = useState(() => localStorage.getItem(ACCESS_TOKEN_KEY));
-  const [isBootstrapping, setIsBootstrapping] = useState(Boolean(localStorage.getItem(ACCESS_TOKEN_KEY)));
+  const [token, setToken] = useState(() => localStorage.getItem(TOKEN_KEYS.access));
+  const [isBootstrapping, setIsBootstrapping] = useState(true);
 
   const saveSession = (session) => {
     persistSession(session);
     setUser(session.user);
-    setToken(session.token);
+    setToken(session.token || localStorage.getItem(TOKEN_KEYS.access));
   };
 
   const login = async (payload) => {
@@ -51,6 +49,14 @@ export function AuthProvider({ children }) {
     return session.user;
   };
 
+  const refreshMe = async () => {
+    const currentUser = await authApi.me();
+    const nextUser = { ...(readStoredJson(USER_KEY) || {}), ...currentUser };
+    localStorage.setItem(USER_KEY, JSON.stringify(nextUser));
+    setUser(nextUser);
+    return nextUser;
+  };
+
   const logout = async () => {
     await authApi.logout();
     clearSessionStorage();
@@ -61,18 +67,14 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     let active = true;
 
-    async function validateSession() {
-      if (!token) {
-        setIsBootstrapping(false);
-        return;
-      }
-
+    async function bootstrapSession() {
       try {
         const currentUser = await authApi.me();
         if (!active) return;
-        const storedUser = { ...user, ...currentUser };
-        localStorage.setItem(USER_KEY, JSON.stringify(storedUser));
-        setUser(storedUser);
+
+        const nextUser = { ...(readStoredJson(USER_KEY) || {}), ...currentUser };
+        localStorage.setItem(USER_KEY, JSON.stringify(nextUser));
+        setUser(nextUser);
       } catch {
         if (!active) return;
         clearSessionStorage();
@@ -83,18 +85,21 @@ export function AuthProvider({ children }) {
       }
     }
 
-    validateSession();
-    return () => { active = false; };
+    bootstrapSession();
+    return () => {
+      active = false;
+    };
   }, []);
 
   const value = useMemo(() => ({
     user,
     token,
-    isAuthenticated: Boolean(token && user),
+    isAuthenticated: Boolean(user),
     isBootstrapping,
     login,
     register,
     logout,
+    refreshMe,
   }), [user, token, isBootstrapping]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

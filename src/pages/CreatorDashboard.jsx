@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { EmptyState, ErrorMessage, SuccessMessage } from "../components/Status.jsx";
+import { EmptyState, ErrorMessage, LoadingCard, StatCard, SuccessMessage } from "../components/Status.jsx";
 import { onlyflansApi } from "../services/onlyflansApi.js";
 import { useAuth } from "../state/AuthContext.jsx";
 
@@ -15,6 +15,8 @@ function isInsideDateRange(dateValue, startDate, endDate) {
   return true;
 }
 
+const initialPostForm = { text: "", imageUrls: "" };
+
 export default function CreatorDashboard() {
   const { user } = useAuth();
   const [profile, setProfile] = useState(null);
@@ -22,23 +24,26 @@ export default function CreatorDashboard() {
   const [donations, setDonations] = useState([]);
   const [profileForm, setProfileForm] = useState({ nombre_publico: "", biografia: "", foto_perfil_url: "", banner_url: "" });
   const [goalForm, setGoalForm] = useState({ title: "", description: "" });
-  const [postForm, setPostForm] = useState({ text: "", imageUrl: "" });
-  const [reportDates, setReportDates] = useState({ startDate: today(), endDate: today() });
+  const [postForm, setPostForm] = useState(initialPostForm);
+  const [reportDates, setReportDates] = useState({ startDate: "", endDate: today() });
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(true);
+  const [actionLoading, setActionLoading] = useState(false);
 
   const filteredDonations = useMemo(() => donations.filter((donation) => isInsideDateRange(donation.createdAt, reportDates.startDate, reportDates.endDate)), [donations, reportDates]);
   const report = useMemo(() => onlyflansApi.donations.summarize(filteredDonations), [filteredDonations]);
+  const totalReport = useMemo(() => onlyflansApi.donations.summarize(donations), [donations]);
 
   const load = async () => {
     setLoading(true);
     setError("");
+
     try {
       const profileData = await onlyflansApi.creators.getProfile(user.id);
       const [postsData, donationsData] = await Promise.all([
         onlyflansApi.creators.listPosts(user.id, true),
-        onlyflansApi.donations.list({ id_creador: user.id, estado_pago: "SIMULADO_APROBADO" }),
+        onlyflansApi.donations.list({ id_creador: user.id, estado_pago: "SIMULADO_APROBADO", limit: 100 }),
       ]);
 
       setProfile(profileData);
@@ -66,12 +71,16 @@ export default function CreatorDashboard() {
   const run = async (fn, message) => {
     setError("");
     setSuccess("");
+    setActionLoading(true);
+
     try {
       await fn();
       setSuccess(message);
       await load();
     } catch (err) {
       setError(err.message);
+    } finally {
+      setActionLoading(false);
     }
   };
 
@@ -89,15 +98,17 @@ export default function CreatorDashboard() {
 
   const createPost = (event) => {
     event.preventDefault();
+    const imageUrls = postForm.imageUrls.split("\n").map((url) => url.trim()).filter(Boolean);
+
     run(async () => {
-      await onlyflansApi.posts.create({ creatorId: user.id, text: postForm.text, imageUrl: postForm.imageUrl });
-      setPostForm({ text: "", imageUrl: "" });
+      await onlyflansApi.posts.create({ creatorId: user.id, text: postForm.text, imageUrls });
+      setPostForm(initialPostForm);
     }, "Publicación creada correctamente.");
   };
 
   const deactivatePost = (post) => run(() => onlyflansApi.posts.deactivate(post), "Publicación desactivada correctamente.");
 
-  if (loading) return <section className="card"><p>Cargando panel de creador...</p></section>;
+  if (loading) return <LoadingCard>Cargando panel de creador...</LoadingCard>;
 
   return (
     <section>
@@ -105,40 +116,49 @@ export default function CreatorDashboard() {
         <div>
           <p className="eyebrow">Creador</p>
           <h1>Panel de creador</h1>
-          <p className="muted">Gestiona perfil, meta, publicaciones y reporte de apoyos desde los módulos del backend.</p>
+          <p className="muted">Gestiona perfil, meta, publicaciones y reporte de apoyos usando únicamente rutas existentes del backend.</p>
         </div>
       </div>
 
       <ErrorMessage message={error} />
       <SuccessMessage message={success} />
 
+      <div className="stats-grid">
+        <StatCard label="Publicaciones activas" value={posts.length} helper="Desde /api/publicaciones" />
+        <StatCard label="Apoyos recibidos" value={totalReport.donationCount} helper={`${totalReport.totalFlans} flanes`} />
+        <StatCard label="Ingresos simulados" value={`Bs. ${totalReport.totalBs}`} helper="Estado SIMULADO_APROBADO" />
+      </div>
+
       <div className="two-column">
         <form className="card form-grid" onSubmit={saveProfile}>
           <h2>Perfil público</h2>
-          <label>Nombre público<input value={profileForm.nombre_publico} onChange={(e) => setProfileForm({ ...profileForm, nombre_publico: e.target.value })} required /></label>
-          <label>Biografía<textarea value={profileForm.biografia} onChange={(e) => setProfileForm({ ...profileForm, biografia: e.target.value })} maxLength={500} /></label>
+          <label>Nombre público<input value={profileForm.nombre_publico} onChange={(e) => setProfileForm({ ...profileForm, nombre_publico: e.target.value })} maxLength={120} required /></label>
+          <label>Biografía<textarea value={profileForm.biografia} onChange={(e) => setProfileForm({ ...profileForm, biografia: e.target.value })} /></label>
           <label>URL foto de perfil<input value={profileForm.foto_perfil_url} onChange={(e) => setProfileForm({ ...profileForm, foto_perfil_url: e.target.value })} placeholder="https://..." /></label>
           <label>URL banner<input value={profileForm.banner_url} onChange={(e) => setProfileForm({ ...profileForm, banner_url: e.target.value })} placeholder="https://..." /></label>
-          <button className="button">Guardar perfil</button>
+          <button className="button" disabled={actionLoading}>{actionLoading ? "Guardando..." : "Guardar perfil"}</button>
         </form>
 
         <form className="card form-grid" onSubmit={saveGoal}>
           <h2>Meta de apoyo</h2>
-          <label>Título<input value={goalForm.title} onChange={(e) => setGoalForm({ ...goalForm, title: e.target.value })} minLength={3} maxLength={160} required /></label>
-          <label>Descripción<textarea value={goalForm.description} onChange={(e) => setGoalForm({ ...goalForm, description: e.target.value })} minLength={10} maxLength={500} required /></label>
-          <div className="actions"><button className="button">Guardar meta</button><button type="button" className="button danger" onClick={deactivateGoal}>Desactivar meta</button></div>
+          <label>Título<input value={goalForm.title} onChange={(e) => setGoalForm({ ...goalForm, title: e.target.value })} maxLength={160} required /></label>
+          <label>Descripción<textarea value={goalForm.description} onChange={(e) => setGoalForm({ ...goalForm, description: e.target.value })} required /></label>
+          <div className="actions">
+            <button className="button" disabled={actionLoading}>{profile?.goal ? "Actualizar meta" : "Crear meta"}</button>
+            <button type="button" className="button danger" onClick={deactivateGoal} disabled={!profile?.goal || actionLoading}>Desactivar</button>
+          </div>
         </form>
       </div>
 
       <div className="two-column">
         <form className="card form-grid" onSubmit={createPost}>
           <h2>Nueva publicación</h2>
-          <label>Texto<textarea value={postForm.text} onChange={(e) => setPostForm({ ...postForm, text: e.target.value })} minLength={1} maxLength={2000} required /></label>
-          <label>URL de imagen opcional<input value={postForm.imageUrl} onChange={(e) => setPostForm({ ...postForm, imageUrl: e.target.value })} placeholder="https://..." /></label>
-          <button className="button">Publicar</button>
+          <label>Texto<textarea value={postForm.text} onChange={(e) => setPostForm({ ...postForm, text: e.target.value })} placeholder="Escribe contenido para tus seguidores" /></label>
+          <label>URLs de imágenes, una por línea<textarea value={postForm.imageUrls} onChange={(e) => setPostForm({ ...postForm, imageUrls: e.target.value })} placeholder="https://imagen-1...\nhttps://imagen-2..." /></label>
+          <button className="button" disabled={actionLoading || (!postForm.text.trim() && !postForm.imageUrls.trim())}>Publicar</button>
         </form>
 
-        <section className="card">
+        <section className="card form-grid">
           <h2>Reporte de ingresos</h2>
           <div className="inline-form wrap">
             <label>Inicio<input type="date" value={reportDates.startDate} onChange={(e) => setReportDates({ ...reportDates, startDate: e.target.value })} /></label>
@@ -149,21 +169,35 @@ export default function CreatorDashboard() {
             <span>Bs. {report.totalBs}</span>
             <span>{report.donationCount} apoyos</span>
           </div>
-          {filteredDonations.map((donation) => <p key={donation.donationId} className="list-row">Seguidor #{donation.followerId} apoyó {donation.flanQuantity} flanes — Bs. {donation.amountBs}</p>)}
+          <div className="mini-list scroll-list">
+            {filteredDonations.map((donation) => <p key={donation.donationId} className="list-row">Seguidor #{donation.followerId} apoyó {donation.flanQuantity} flanes — Bs. {donation.amountBs}</p>)}
+            {filteredDonations.length === 0 && <p className="muted">No hay apoyos en ese rango.</p>}
+          </div>
         </section>
       </div>
 
       <section>
         <div className="section-header"><h2>Mis publicaciones y comentarios</h2></div>
-        {posts.length === 0 && <EmptyState>No hay publicaciones todavía.</EmptyState>}
+        {posts.length === 0 && <EmptyState title="Sin publicaciones">Crea tu primera publicación para tus seguidores.</EmptyState>}
         <div className="post-list">
           {posts.map((post) => (
             <article className="post card" key={post.postId}>
-              <div className="post-header"><time>{post.createdAt ? new Date(post.createdAt).toLocaleString() : "Sin fecha"}</time><button className="button danger small" onClick={() => deactivatePost(post)}>Desactivar</button></div>
-              <p>{post.text}</p>
-              {post.imageUrl && <img className="post-image" src={post.imageUrl} alt="Publicación" />}
-              <h4>Comentarios recibidos</h4>
-              {post.comments?.length ? post.comments.map((comment) => <p className="comment" key={comment.commentId}><strong>Seguidor #{comment.followerId}:</strong> {comment.content}</p>) : <p className="muted">Sin comentarios.</p>}
+              <div className="post-header">
+                <time>{post.createdAt ? new Date(post.createdAt).toLocaleString() : "Sin fecha"}</time>
+                <button className="button danger small" onClick={() => deactivatePost(post)} disabled={actionLoading}>Desactivar</button>
+              </div>
+              {post.text && <p>{post.text}</p>}
+              {post.images?.length > 0 && (
+                <div className="image-grid">
+                  {post.images.map((image) => <img className="post-image" src={image.imageUrl} alt="Publicación" key={image.imageId} loading="lazy" />)}
+                </div>
+              )}
+              <div className="comment-box">
+                <h4>Comentarios recibidos</h4>
+                {post.comments?.length ? post.comments.map((comment) => (
+                  <p className="comment" key={comment.commentId}><strong>Seguidor #{comment.followerId}:</strong> {comment.content}</p>
+                )) : <p className="muted">Sin comentarios.</p>}
+              </div>
             </article>
           ))}
         </div>

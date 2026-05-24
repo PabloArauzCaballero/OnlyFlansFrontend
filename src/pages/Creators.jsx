@@ -1,17 +1,23 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { EmptyState, ErrorMessage } from "../components/Status.jsx";
+import { EmptyState, ErrorMessage, LoadingCard } from "../components/Status.jsx";
 import { onlyflansApi } from "../services/onlyflansApi.js";
 
 function CreatorCard({ creator }) {
+  const initials = creator.publicName.slice(0, 2).toUpperCase();
+
   return (
     <article className="creator-card card">
       <div className="creator-banner fallback-gradient">
-        {creator.bannerImageUrl && <img src={creator.bannerImageUrl} alt="Banner del creador" />}
+        {creator.bannerImageUrl && <img src={creator.bannerImageUrl} alt={`Banner de ${creator.publicName}`} loading="lazy" />}
       </div>
       <div className="creator-card-content">
         <div className="avatar-wrap">
-          {creator.profileImageUrl ? <img className="avatar" src={creator.profileImageUrl} alt={creator.publicName} /> : <span className="avatar initials">{creator.publicName.slice(0, 2).toUpperCase()}</span>}
+          {creator.profileImageUrl ? (
+            <img className="avatar" src={creator.profileImageUrl} alt={creator.publicName} loading="lazy" />
+          ) : (
+            <span className="avatar initials">{initials}</span>
+          )}
         </div>
         <div>
           <h3>{creator.publicName}</h3>
@@ -24,16 +30,16 @@ function CreatorCard({ creator }) {
 }
 
 export default function Creators() {
-  const [publicName, setPublicName] = useState("");
+  const [search, setSearch] = useState("");
   const [creators, setCreators] = useState([]);
   const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
-  const load = async () => {
+  const load = async (nextSearch = search) => {
     setLoading(true);
     setError("");
     try {
-      setCreators(await onlyflansApi.creators.list({ publicName }));
+      setCreators(await onlyflansApi.creators.list({ search: nextSearch }));
     } catch (err) {
       setError(err.message);
     } finally {
@@ -41,11 +47,11 @@ export default function Creators() {
     }
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(""); }, []);
 
   const submit = (event) => {
     event.preventDefault();
-    load();
+    load(search);
   };
 
   return (
@@ -54,17 +60,17 @@ export default function Creators() {
         <div>
           <p className="eyebrow">Explorar</p>
           <h1>Creadores</h1>
-          <p className="muted">Listado consumido desde <code>/api/usuarios/perfiles-creadores</code>.</p>
+          <p className="muted">Búsqueda por texto usando el query <code>search</code> del CRUD genérico del backend.</p>
         </div>
         <form className="search-box" onSubmit={submit}>
-          <input placeholder="Buscar por nombre público" value={publicName} onChange={(e) => setPublicName(e.target.value)} />
+          <input placeholder="Buscar por nombre o biografía" value={search} onChange={(e) => setSearch(e.target.value)} />
           <button className="button small">Buscar</button>
         </form>
       </div>
 
       <ErrorMessage message={error} />
-      {loading && <p className="loading">Cargando creadores...</p>}
-      {!loading && creators.length === 0 && <EmptyState>No hay creadores para mostrar.</EmptyState>}
+      {loading ? <LoadingCard>Cargando creadores...</LoadingCard> : null}
+      {!loading && creators.length === 0 && <EmptyState title="No hay creadores activos">Prueba con otra búsqueda o registra una cuenta de creador.</EmptyState>}
       <div className="grid cards-grid">
         {creators.map((creator) => <CreatorCard key={creator.creatorId} creator={creator} />)}
       </div>

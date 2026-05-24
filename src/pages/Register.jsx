@@ -1,25 +1,29 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { ErrorMessage } from "../components/Status.jsx";
 import { ROLES } from "../services/onlyflansApi.js";
 import { useAuth } from "../state/AuthContext.jsx";
-import { ErrorMessage } from "../components/Status.jsx";
+
+const initialForm = {
+  name: "",
+  email: "",
+  password: "",
+  role: ROLES.FOLLOWER,
+  publicName: "",
+  visibleName: "",
+  bio: "",
+  profileUrl: "",
+  coverUrl: "",
+};
 
 export default function Register() {
   const { register } = useAuth();
   const navigate = useNavigate();
-  const [form, setForm] = useState({
-    name: "",
-    email: "",
-    password: "",
-    role: ROLES.FOLLOWER,
-    publicName: "",
-    visibleName: "",
-    bio: "",
-    profileUrl: "",
-    coverUrl: "",
-  });
+  const [form, setForm] = useState(initialForm);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  const update = (field, value) => setForm((current) => ({ ...current, [field]: value }));
 
   const submit = async (event) => {
     event.preventDefault();
@@ -28,7 +32,7 @@ export default function Register() {
 
     try {
       const user = await register(form);
-      navigate(user.role === ROLES.CREATOR ? "/creator/dashboard" : "/follower/dashboard");
+      navigate(user.role === ROLES.CREATOR ? "/creator/dashboard" : "/follower/dashboard", { replace: true });
     } catch (err) {
       setError(err.message);
     } finally {
@@ -37,36 +41,49 @@ export default function Register() {
   };
 
   return (
-    <section className="auth-card card">
-      <p className="eyebrow">Registro</p>
+    <section className="auth-card card wide-auth">
+      <p className="eyebrow">Registro conectado al backend</p>
       <h1>Crear cuenta</h1>
-      <p className="muted">El registro usa rutas separadas para creador y seguidor, tal como está definido en el backend.</p>
+      <p className="muted">El backend tiene rutas separadas para registrar creadores y seguidores. El formulario arma el payload correcto según el rol.</p>
       <ErrorMessage message={error} />
 
       <form onSubmit={submit} className="form-grid">
-        <label>Nombre<input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} minLength={2} required /></label>
-        <label>Email<input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} required /></label>
-        <label>Contraseña<input type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} minLength={8} required /></label>
-        <label>Rol
-          <select value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })}>
-            <option value={ROLES.FOLLOWER}>Seguidor</option>
-            <option value={ROLES.CREATOR}>Creador</option>
-          </select>
-        </label>
+        <div className="two-column compact">
+          <label>Nombre<input value={form.name} onChange={(e) => update("name", e.target.value)} minLength={2} maxLength={120} required autoComplete="name" /></label>
+          <label>Email<input type="email" value={form.email} onChange={(e) => update("email", e.target.value)} required autoComplete="email" /></label>
+        </div>
+
+        <div className="two-column compact">
+          <label>Contraseña<input type="password" value={form.password} onChange={(e) => update("password", e.target.value)} minLength={8} maxLength={100} required autoComplete="new-password" /></label>
+          <label>Rol
+            <select value={form.role} onChange={(e) => update("role", e.target.value)}>
+              <option value={ROLES.FOLLOWER}>Seguidor</option>
+              <option value={ROLES.CREATOR}>Creador</option>
+            </select>
+          </label>
+        </div>
 
         {form.role === ROLES.CREATOR ? (
-          <>
-            <label>Nombre público<input value={form.publicName} onChange={(e) => setForm({ ...form, publicName: e.target.value })} placeholder="Nombre visible del creador" /></label>
-            <label>Biografía<textarea value={form.bio} onChange={(e) => setForm({ ...form, bio: e.target.value })} maxLength={500} placeholder="Cuenta brevemente qué tipo de contenido publicarás" /></label>
-            <label>URL foto de perfil<input value={form.profileUrl} onChange={(e) => setForm({ ...form, profileUrl: e.target.value })} placeholder="https://..." /></label>
-            <label>URL banner<input value={form.coverUrl} onChange={(e) => setForm({ ...form, coverUrl: e.target.value })} placeholder="https://..." /></label>
-          </>
+          <div className="form-grid nested-panel">
+            <h2>Perfil de creador</h2>
+            <label>Nombre público<input value={form.publicName} onChange={(e) => update("publicName", e.target.value)} placeholder="Ej. Flanes de Ana" maxLength={120} required /></label>
+            <label>Biografía<textarea value={form.bio} onChange={(e) => update("bio", e.target.value)} placeholder="Cuenta brevemente qué contenido publicarás" /></label>
+            <div className="two-column compact">
+              <label>URL foto de perfil<input value={form.profileUrl} onChange={(e) => update("profileUrl", e.target.value)} placeholder="https://..." /></label>
+              <label>URL banner<input value={form.coverUrl} onChange={(e) => update("coverUrl", e.target.value)} placeholder="https://..." /></label>
+            </div>
+          </div>
         ) : (
-          <label>Nombre visible<input value={form.visibleName} onChange={(e) => setForm({ ...form, visibleName: e.target.value })} placeholder="Nombre que verá el creador" /></label>
+          <div className="form-grid nested-panel">
+            <h2>Perfil de seguidor</h2>
+            <label>Nombre visible<input value={form.visibleName} onChange={(e) => update("visibleName", e.target.value)} placeholder="Nombre que verá el creador" maxLength={120} required /></label>
+          </div>
         )}
 
-        <button className="button" disabled={loading}>{loading ? "Creando..." : "Crear cuenta"}</button>
+        <button className="button full" disabled={loading}>{loading ? "Creando cuenta..." : "Crear cuenta"}</button>
       </form>
+
+      <p className="auth-footer">¿Ya tienes cuenta? <Link to="/login">Entrar</Link></p>
     </section>
   );
 }
