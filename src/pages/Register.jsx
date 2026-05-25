@@ -44,7 +44,6 @@ export default function Register() {
     <section className="auth-card card wide-auth">
       <p className="eyebrow">Registro conectado al backend</p>
       <h1>Crear cuenta</h1>
-      <p className="muted">El backend tiene rutas separadas para registrar creadores y seguidores. El formulario arma el payload correcto según el rol.</p>
       <ErrorMessage message={error} />
 
       <form onSubmit={submit} className="form-grid">

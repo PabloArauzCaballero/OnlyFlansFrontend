@@ -116,7 +116,6 @@ export default function CreatorDashboard() {
         <div>
           <p className="eyebrow">Creador</p>
           <h1>Panel de creador</h1>
-          <p className="muted">Gestiona perfil, meta, publicaciones y reporte de apoyos usando únicamente rutas existentes del backend.</p>
         </div>
       </div>
 
@@ -124,7 +123,7 @@ export default function CreatorDashboard() {
       <SuccessMessage message={success} />
 
       <div className="stats-grid">
-        <StatCard label="Publicaciones activas" value={posts.length} helper="Desde /api/publicaciones" />
+        <StatCard label="Publicaciones activas" value={posts.length} />
         <StatCard label="Apoyos recibidos" value={totalReport.donationCount} helper={`${totalReport.totalFlans} flanes`} />
         <StatCard label="Ingresos simulados" value={`Bs. ${totalReport.totalBs}`} helper="Estado SIMULADO_APROBADO" />
       </div>

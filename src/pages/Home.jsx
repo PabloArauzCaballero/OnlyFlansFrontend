@@ -11,10 +11,6 @@ export default function Home() {
         <div className="hero-copy">
           <p className="eyebrow">Frontend ajustado al backend real</p>
           <h1>Apoyos simbólicos, perfiles públicos y comunidad en una interfaz simple.</h1>
-          <p>
-            Esta versión consume las rutas reales del backend Express: autenticación por rol, perfiles de creadores,
-            publicaciones, imágenes, comentarios, favoritos, seguidos y apoyos.
-          </p>
           <div className="actions">
             <Link className="button" to="/creators">Explorar creadores</Link>
             {!user && <Link className="button secondary" to="/register">Crear cuenta</Link>}
@@ -34,17 +30,14 @@ export default function Home() {
         <article className="feature-card">
           <span>01</span>
           <h3>Creadores</h3>
-          <p>Listado público desde <code>/api/usuarios/perfiles-creadores</code>.</p>
         </article>
         <article className="feature-card">
           <span>02</span>
           <h3>Publicaciones</h3>
-          <p>Texto e imágenes usando <code>/api/publicaciones</code> y <code>/api/publicaciones/imagenes</code>.</p>
         </article>
         <article className="feature-card">
           <span>03</span>
           <h3>Apoyos</h3>
-          <p>Donaciones simbólicas contra <code>/api/apoyos</code>.</p>
         </article>
       </div>
     </section>

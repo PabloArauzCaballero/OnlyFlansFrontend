@@ -32,7 +32,6 @@ export default function Login() {
     <section className="auth-card card">
       <p className="eyebrow">Acceso seguro</p>
       <h1>Iniciar sesión</h1>
-      <p className="muted">El backend devuelve cookies HTTP-only y tokens. El frontend trabaja con ambos para evitar problemas de sesión.</p>
       <ErrorMessage message={error} />
 
       <form onSubmit={submit} className="form-grid">
