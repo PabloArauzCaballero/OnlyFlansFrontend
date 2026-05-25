@@ -57,7 +57,9 @@ export default function CreatorPublicProfile() {
     }
   };
 
-  useEffect(() => { load(); }, [creatorId, user?.id, user?.role]);
+  useEffect(() => { 
+    load(); 
+  }, [creatorId, user?.id, user?.role]);
 
   const runAction = async (fn, messageText) => {
     setError("");
@@ -76,8 +78,11 @@ export default function CreatorPublicProfile() {
   };
 
   const toggleFavorite = () => runAction(async () => {
-    if (favorite) await onlyflansApi.favorites.deactivate(favorite);
-    else await onlyflansApi.favorites.add({ followerId: user.id, creatorId });
+    if (favorite){ 
+      await onlyflansApi.favorites.deactivate(favorite);
+    }else {
+      await onlyflansApi.favorites.add({ followerId: user.id, creatorId });
+    }
   }, favorite ? "Creador quitado de favoritos." : "Creador agregado a favoritos.");
 
   const toggleFollow = () => runAction(async () => {
@@ -144,7 +149,6 @@ export default function CreatorPublicProfile() {
         <div className="two-column">
           <form className="card form-grid" onSubmit={donate}>
             <h2>Apoyar con flanes</h2>
-            <p className="muted">El monto final se calcula con el tipo de apoyo <code>FLAN</code> del backend.</p>
             <div className="support-preview"><strong>{flans || 0}</strong><span>flanes seleccionados</span></div>
             <label>Cantidad de flanes<input type="number" min="1" value={flans} onChange={(e) => setFlans(e.target.value)} required /></label>
             <label>Mensaje opcional<textarea value={message} onChange={(e) => setMessage(e.target.value)} placeholder="Escribe un mensaje para el creador" /></label>
@@ -153,7 +157,6 @@ export default function CreatorPublicProfile() {
 
           <div className="card form-grid">
             <h2>Relación con el creador</h2>
-            <p className="muted">Favoritos y seguidos usan tablas diferentes del backend: <code>creador_favorito</code> y <code>creador_seguido</code>.</p>
             <div className="actions">
               <button className="button secondary" onClick={toggleFavorite} disabled={actionLoading}>{favorite ? "Quitar favorito" : "Agregar favorito"}</button>
               <button className="button secondary" onClick={toggleFollow} disabled={actionLoading}>{follow ? "Dejar de seguir" : "Seguir"}</button>
