@@ -128,7 +128,7 @@ export default function Creators() {
       <ErrorMessage message={error} />
       <SuccessMessage message={success} />
       {loading ? <LoadingCard>Cargando creadores...</LoadingCard> : null}
-      {!loading && creators.length === 0 && <EmptyState title="No hay creadores activos">Prueba con otra búsqueda o registra una cuenta de creador.</EmptyState>}
+      {!loading && creators.length === 0 && <EmptyState title="No hay creadores activos">Prueba con otra búsqueda</EmptyState>}
       <div className="grid cards-grid">
         {creators.map((creator) => {
           const follow = followByCreatorId[String(creator.creatorId)];
