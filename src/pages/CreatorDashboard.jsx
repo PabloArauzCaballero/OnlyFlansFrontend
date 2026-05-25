@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { EmptyState, ErrorMessage, LoadingCard, StatCard, SuccessMessage } from "../components/Status.jsx";
 import { onlyflansApi } from "../services/onlyflansApi.js";
+import { uploadMultipleImages, uploadSingleImage } from "../services/cloudinary.js";
 import { useAuth } from "../state/AuthContext.jsx";
 
 function today() {
@@ -25,6 +26,12 @@ export default function CreatorDashboard() {
   const [profileForm, setProfileForm] = useState({ nombre_publico: "", biografia: "", foto_perfil_url: "", banner_url: "" });
   const [goalForm, setGoalForm] = useState({ title: "", description: "" });
   const [postForm, setPostForm] = useState(initialPostForm);
+  const [profileImageFile, setProfileImageFile] = useState(null);
+  const [bannerFile, setBannerFile] = useState(null);
+  const [postImageFiles, setPostImageFiles] = useState([]);
+  const [uploadingProfileImage, setUploadingProfileImage] = useState(false);
+  const [uploadingBannerImage, setUploadingBannerImage] = useState(false);
+  const [uploadingPostImages, setUploadingPostImages] = useState(false);
   const [reportDates, setReportDates] = useState({ startDate: "", endDate: today() });
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -84,6 +91,65 @@ export default function CreatorDashboard() {
     }
   };
 
+  const isValidImageFile = (file) => {
+    if (!file) return false;
+    return file.type.startsWith("image/");
+  };
+
+  const uploadProfileImage = async () => {
+    if (!profileImageFile) {
+      setError("Selecciona una imagen de perfil antes de subirla.");
+      return;
+    }
+
+    if (!isValidImageFile(profileImageFile)) {
+      setError("El archivo de perfil debe ser una imagen válida.");
+      return;
+    }
+
+    setError("");
+    setSuccess("");
+    setUploadingProfileImage(true);
+
+    try {
+      const uploaded = await uploadSingleImage(profileImageFile, { folder: "onlyflans/profile" });
+      setProfileForm((current) => ({ ...current, foto_perfil_url: uploaded.url }));
+      setProfileImageFile(null);
+      setSuccess("Imagen de perfil subida correctamente.");
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setUploadingProfileImage(false);
+    }
+  };
+
+  const uploadBannerImage = async () => {
+    if (!bannerFile) {
+      setError("Selecciona una imagen de banner antes de subirla.");
+      return;
+    }
+
+    if (!isValidImageFile(bannerFile)) {
+      setError("El archivo de banner debe ser una imagen válida.");
+      return;
+    }
+
+    setError("");
+    setSuccess("");
+    setUploadingBannerImage(true);
+
+    try {
+      const uploaded = await uploadSingleImage(bannerFile, { folder: "onlyflans/banner" });
+      setProfileForm((current) => ({ ...current, banner_url: uploaded.url }));
+      setBannerFile(null);
+      setSuccess("Banner subido correctamente.");
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setUploadingBannerImage(false);
+    }
+  };
+
   const saveProfile = (event) => {
     event.preventDefault();
     run(() => onlyflansApi.creators.updateProfile(user.id, profileForm), "Perfil actualizado correctamente.");
@@ -98,11 +164,25 @@ export default function CreatorDashboard() {
 
   const createPost = (event) => {
     event.preventDefault();
-    const imageUrls = postForm.imageUrls.split("\n").map((url) => url.trim()).filter(Boolean);
+    const manualImageUrls = postForm.imageUrls.split("\n").map((url) => url.trim()).filter(Boolean);
 
     run(async () => {
+      let uploadedImageUrls = [];
+
+      if (postImageFiles.length > 0) {
+        const invalidFile = postImageFiles.find((file) => !isValidImageFile(file));
+        if (invalidFile) {
+          throw new Error("Todos los archivos de la publicación deben ser imágenes válidas.");
+        }
+
+        setUploadingPostImages(true);
+        uploadedImageUrls = await uploadMultipleImages(postImageFiles, { folder: "onlyflans/posts" });
+      }
+
+      const imageUrls = [...manualImageUrls, ...uploadedImageUrls];
       await onlyflansApi.posts.create({ creatorId: user.id, text: postForm.text, imageUrls });
       setPostForm(initialPostForm);
+      setPostImageFiles([]);
     }, "Publicación creada correctamente.");
   };
 
@@ -133,8 +213,20 @@ export default function CreatorDashboard() {
           <h2>Perfil público</h2>
           <label>Nombre público<input value={profileForm.nombre_publico} onChange={(e) => setProfileForm({ ...profileForm, nombre_publico: e.target.value })} maxLength={120} required /></label>
           <label>Biografía<textarea value={profileForm.biografia} onChange={(e) => setProfileForm({ ...profileForm, biografia: e.target.value })} /></label>
-          <label>URL foto de perfil<input value={profileForm.foto_perfil_url} onChange={(e) => setProfileForm({ ...profileForm, foto_perfil_url: e.target.value })} placeholder="https://..." /></label>
-          <label>URL banner<input value={profileForm.banner_url} onChange={(e) => setProfileForm({ ...profileForm, banner_url: e.target.value })} placeholder="https://..." /></label>
+
+          <label>Subir foto de perfil<input type="file" accept="image/*" onChange={(e) => setProfileImageFile(e.target.files?.[0] || null)} /></label>
+          <button type="button" className="button" onClick={uploadProfileImage} disabled={actionLoading || uploadingProfileImage || !profileImageFile}>
+            {uploadingProfileImage ? "Subiendo foto..." : "Subir foto de perfil"}
+          </button>
+
+          <label>Subir banner<input type="file" accept="image/*" onChange={(e) => setBannerFile(e.target.files?.[0] || null)} /></label>
+          <button type="button" className="button" onClick={uploadBannerImage} disabled={actionLoading || uploadingBannerImage || !bannerFile}>
+            {uploadingBannerImage ? "Subiendo banner..." : "Subir banner"}
+          </button>
+
+          <label>URL foto de perfil (manual/fallback)<input value={profileForm.foto_perfil_url} onChange={(e) => setProfileForm({ ...profileForm, foto_perfil_url: e.target.value })} placeholder="https://..." /></label>
+          <label>URL banner (manual/fallback)<input value={profileForm.banner_url} onChange={(e) => setProfileForm({ ...profileForm, banner_url: e.target.value })} placeholder="https://..." /></label>
+
           <button className="button" disabled={actionLoading}>{actionLoading ? "Guardando..." : "Guardar perfil"}</button>
         </form>
 
@@ -153,8 +245,12 @@ export default function CreatorDashboard() {
         <form className="card form-grid" onSubmit={createPost}>
           <h2>Nueva publicación</h2>
           <label>Texto<textarea value={postForm.text} onChange={(e) => setPostForm({ ...postForm, text: e.target.value })} placeholder="Escribe contenido para tus seguidores" /></label>
-          <label>URLs de imágenes, una por línea<textarea value={postForm.imageUrls} onChange={(e) => setPostForm({ ...postForm, imageUrls: e.target.value })} placeholder="https://imagen-1...\nhttps://imagen-2..." /></label>
-          <button className="button" disabled={actionLoading || (!postForm.text.trim() && !postForm.imageUrls.trim())}>Publicar</button>
+          <label>Subir imágenes de la publicación<input type="file" accept="image/*" multiple onChange={(e) => setPostImageFiles(Array.from(e.target.files || []))} /></label>
+          {postImageFiles.length > 0 && <p className="muted">{postImageFiles.length} imagen(es) seleccionada(s).</p>}
+          <label>URLs de imágenes, una por línea (manual/fallback)<textarea value={postForm.imageUrls} onChange={(e) => setPostForm({ ...postForm, imageUrls: e.target.value })} placeholder="https://imagen-1...\nhttps://imagen-2..." /></label>
+          <button className="button" disabled={actionLoading || uploadingPostImages || (!postForm.text.trim() && !postForm.imageUrls.trim() && postImageFiles.length === 0)}>
+            {uploadingPostImages ? "Subiendo imágenes..." : "Publicar"}
+          </button>
         </form>
 
         <section className="card form-grid">
@@ -169,7 +265,7 @@ export default function CreatorDashboard() {
             <span>{report.donationCount} apoyos</span>
           </div>
           <div className="mini-list scroll-list">
-            {filteredDonations.map((donation) => <p key={donation.donationId} className="list-row">Seguidor #{donation.followerId} apoyó {donation.flanQuantity} flanes — Bs. {donation.amountBs}</p>)}
+            {filteredDonations.map((donation) => <p key={donation.donationId} className="list-row">Seguidor #{donation.followerId} apoyó {donation.flanQuantity} flanes - Bs. {donation.amountBs}</p>)}
             {filteredDonations.length === 0 && <p className="muted">No hay apoyos en ese rango.</p>}
           </div>
         </section>

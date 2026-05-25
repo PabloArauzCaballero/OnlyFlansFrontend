@@ -6,3 +6,6 @@
   NODE_VERSION = "22"
   YARN_VERSION = "1.22.22"
   YARN_FLAGS = "--network-timeout 600000 --registry https://registry.npmjs.org"
+  VITE_CLOUDINARY_CLOUD_NAME = ""
+  VITE_CLOUDINARY_UPLOAD_PRESET = ""
+  VITE_CLOUDINARY_FOLDER = "onlyflans"
