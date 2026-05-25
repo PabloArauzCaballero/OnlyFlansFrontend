@@ -118,7 +118,6 @@ export default function Creators() {
         <div>
           <p className="eyebrow">Explorar</p>
           <h1>Creadores</h1>
-          <p className="muted">Búsqueda por texto usando el query <code>search</code> del CRUD genérico del backend.</p>
         </div>
         <form className="search-box" onSubmit={submit}>
           <input placeholder="Buscar por nombre o biografía" value={search} onChange={(e) => setSearch(e.target.value)} />
