@@ -176,7 +176,10 @@ export default function CreatorPublicProfile() {
       <div className="post-list">
         {posts.map((post) => (
           <article className="post card" key={post.postId}>
-            <div className="post-header"><strong>Publicación</strong><time>{post.createdAt ? new Date(post.createdAt).toLocaleString() : "Sin fecha"}</time></div>
+            <div className="post-header">
+              <strong>Publicación</strong>
+              <time>{post.createdAt ? new Date(post.createdAt).toLocaleString() : "Sin fecha"}</time>
+            </div>
             {post.text && <p>{post.text}</p>}
             {post.images?.length > 0 && (
               <div className="image-grid">
