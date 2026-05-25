@@ -1,3 +1,4 @@
+@ -1,65 +0,0 @@
 # Backend routes reference used by this frontend
 
 This document reflects the real Express routers found in the delivered backend. Older product docs mention routes such as `/api/auth/register`, `/api/creator/profile`, `/api/favorites` or `/api/donations`; those are not the routes consumed by this frontend.
