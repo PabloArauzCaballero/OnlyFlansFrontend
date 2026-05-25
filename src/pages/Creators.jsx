@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { Users, Search } from "lucide-react";
 import { EmptyState, ErrorMessage, LoadingCard, SuccessMessage } from "../components/Status.jsx";
 import { onlyflansApi, ROLES } from "../services/onlyflansApi.js";
 import { useAuth } from "../state/AuthContext.jsx";
@@ -116,12 +117,12 @@ export default function Creators() {
     <section>
       <div className="section-header">
         <div>
-          <p className="eyebrow">Explorar</p>
-          <h1>Creadores</h1>
+          <p className="eyebrow">Explorar creadores activos</p>
+          <h1><Users size={28} className="lucide-icon inline-icon" /> Creadores</h1>
         </div>
         <form className="search-box" onSubmit={submit}>
-          <input placeholder="Buscar por nombre o biografía" value={search} onChange={(e) => setSearch(e.target.value)} />
-          <button className="button small">Buscar</button>
+          <input placeholder="Buscar por nombre o biografía..." value={search} onChange={(e) => setSearch(e.target.value)} />
+          <button className="button small"><Search size={14} className="lucide-icon btn-icon" /> Buscar</button>
         </form>
       </div>
 
